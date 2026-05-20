@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
 from scipy.ndimage import zoom
+import os 
 
 # ── Prétraitement audio ───────────────────────────────────────────────────────
 def mono (donnee):
@@ -15,20 +16,117 @@ def mono (donnee):
     
     return donnee_mono
 
-def permutation(x,y):
+def permutation(x,y,seed):
+    """
+    Mélange aléatoirement et de la même manière deux array. 
+    
+    Entrée : 
+        x et y : np_array
+        seeed : float, correspond à la seed aléatoire pour reproductibilité  
+    Return : 
+        x_f et y_x : np_array, les array mélangés
+    """
     n = len(x) #prends le nombre d'image
-    n_perm = np.random.permutation(n)
+    n_perm = seed.permutation(n)
     x_f = x[n_perm]
     y_f = y[n_perm]
     
     return x_f,y_f
 
-def stockage (img,labels):
-    np.save("labels.npy",labels)
-    np.save("images.npy",img)
-    return "fichiers enregistrés"
+def stockage (img,labels,dossier_entree,fichier_img,fichier_label):
+    """
+    
+    Permet de stocker les images et les labels dans des fichiers .npy
+    
+    Entrée : 
+        img et labels : np_array des donnees
+        path (str) : 
+        path_img (str)
+        path_label(str)
+    """
+    path_label = os.path.join(dossier_entree,fichier_label)
+    path_image = os.path.join(dossier_entree,fichier_img)
+    np.save(path_label.replace('\\', '/'),labels)
+    np.save(path_image.replace('\\', '/'),img)
 
+    return print("fichiers enregistrés")
 
+def spectrogramme(dossier_entree,liste_images,liste_labels,dossier):
+    """
+    Génère des spectrogrammes normalisés (129x65) de 1s centrés sur le pic d'intensité des fichiers audio.
+
+    Entrée:
+        dossier_entree (str): dossier de travail
+        liste_images et liste_label : liste vide
+        dossier (str) : nom du dossier contenant les donnees
+
+    Returns:
+        tuple: (liste_images, liste_labels) contenant les matrices des spectrogrammes et les noms des animaux correspondants.
+    """
+    path = os.path.join(dossier_entree,dossier)
+    for racine, dossiers, fichiers in os.walk(path):
+        for fichier in fichiers:
+            # reconstruire le chemin complet du fichier audio + nom (sous doss)
+            chemin_audio = os.path.join(racine, fichier)
+            nom_animal = os.path.basename(racine)
+            
+            try:
+                # son et générer le spectrogramme
+                samplerate, data = wavfile.read(chemin_audio)
+                data = data * 1.0 #float 
+                
+                # transformation du signal en mono si nécessaire
+                if len(data.shape) > 1:
+                    data = mono(data)
+                
+                #  spectrogramme 
+                px, freq, t, im = plt.specgram(data, Fs=samplerate)
+                plt.close()
+                """
+                px = matrice de densité spectrale = intensité du son 
+                freq = array 1D avec les Y du spectro 
+                t = array 1D avec les X du spectro 
+                im = graphique du spectro 
+                """
+                
+                # normalisation
+                px_db = 10 * np.log10(px + 1e-9) #décibel
+                px_norm = (px_db - np.min(px_db)) / (np.max(px_db) - np.min(px_db))
+                
+                # découpe temporelle (1s)
+                somme = np.sum(px_norm, axis=0)
+                mx = int(np.argmax(somme)) # ajout int
+                
+                duree_cible = 1
+                pas = float(t[1]-t[0]) # pour avoir float pur 
+                nb_pix_cible = int(round(duree_cible / pas))
+                taille_temps = int(px_norm.shape[1])
+                
+                start = int(mx)
+                end = int(start + nb_pix_cible)
+                
+                if end > taille_temps:
+                    end = taille_temps
+                    start = np.maximum(0, end - nb_pix_cible)
+                    
+                px_coupee = px_norm[:, start:end]
+                
+                # On force chaque spectrogramme à faire exactement 129 lignes par 65 colonnes
+                TAILLE_CIBLE = (129, 65)
+                if px_coupee.shape != TAILLE_CIBLE:
+                    px_coupee = zoom(px_coupee, (TAILLE_CIBLE[0] / px_coupee.shape[0], TAILLE_CIBLE[1] / px_coupee.shape[1]))
+                #ratio de zoom pour axe 0 et 1 
+                
+                liste_images.append(px_coupee)
+                liste_labels.append(nom_animal)
+            
+            except Exception as erreur :
+                print(f"Erreur sur le fichier {fichier} : {erreur}")
+                
+    liste_images = np.array(liste_images)
+    liste_labels = np.array(liste_labels)
+                
+    return liste_images,liste_labels
 # ── Activations ───────────────────────────────────────────────────────────────
 def Relu(z):
     return np.maximum(0,z)
@@ -339,3 +437,5 @@ def evaluation(pred, y_test_subset, n_classes, label_to_int=None):
         print(f"{nom[c]:<15} {precision_par_classe[c]:>10.3f} {recall_par_classe[c]:>10.3f} {f1_par_classe[c]:>10.3f}")
     print("-" * 47)
     print(f"{'Moyenne':<15} {np.mean(precision_par_classe):>10.3f} {np.mean(recall_par_classe):>10.3f} {np.mean(f1_par_classe):>10.3f}")
+    
+    

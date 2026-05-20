@@ -2,7 +2,31 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from fonctions import *   # ← importe tout depuis fonctions.py
+from fonctions import * # ← importe tout depuis fonctions.py
+
+# =========================================================
+#Partie 1 - Préprocessing des donees
+# =========================================================
+chemin_data = r"C:\Users\titi\OneDrive - INSA Lyon\S2\Projet" # A CHANGER  !!! prends le dossier complet
+rng = np.random.default_rng(12345)
+
+path_donnee = [["data","images_train.npy","labels_train.npy"],["data","images_test.npy","labels_test.npy"]] 
+#variable contenant le nom du dossier des données d'entrainement et de test, ainsi que du noms des fichiers de sortie.
+
+for data in path_donnee:
+    #listes vides
+    X = []
+    Y = []
+    
+    images,labels= spectrogramme(chemin_data,X,Y,data[0])
+    
+    images_f,labels_f = permutation(images,labels,rng)
+    
+    stockage(images_f,labels_f,chemin_data,data[1],data[2])
+    
+    print("Spectrogrammes terminés")
+    print(f"Forme de la variable images_f (Images) : {images_f.shape}")
+    print(f"Forme de la variable labels_f (Labels) : {labels_f.shape}")
 
 # =========================================================
 # CHOIX DU DATASET
