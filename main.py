@@ -7,7 +7,7 @@ from fonctions import *   # ← importe tout depuis fonctions.py
 # =========================================================
 # CHOIX DU DATASET
 # =========================================================
-DATASET = "mnist"   # ← "mnist" ou "spectres"
+DATASET = "spectres"   # ← "mnist" ou "spectres"
 
 # =========================================================
 # BLOC 2 — CHARGEMENT DES DONNÉES
