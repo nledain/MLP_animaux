@@ -16,16 +16,56 @@ L'objectif du projet est de créer un algorithme permettant d'identifier le type
 
 ## Librairies
 
-Pour executer notre programme, les librairies suivantes sont requises :
+Pour executer notre programme, les librairies/modules suivants sont requises :
 
 * **os** : permet de naviguer dans l'arborescence des fichiers
 * **numpy** : permet manipulation des matrices d'images et les opérations mathématiques
 * **matplotlib.pyplot** : pour générer les spectrogrammes visuellement'
-* **scipy.io.wavfile** : necessaire pour lire les fichiers audio au format wav et extraire leurs fréquences (samplerate
-* **scipy.ndimage.zoom** : permet de redimensionner les images dans une dimension uniforme
-* **tensorflow** : utilisé pour importer des jeux de données d'exemples
+* **scipy.io.wavfile** : necessaire pour lire les fichiers audio au format wav et extraire leurs fréquences d'échantillionnage (issue de la librairie scipy)
+* **scipy.ndimage.zoom** : permet de redimensionner les images dans une dimension uniforme (issue de la librairie scipy)
+* **sklearn.dataset :** permet d'importer les images de minst (!installez la librairie scikit-learn!)
 
 ## Données
+
+
+
+Les données sont issues de la banques Kaggle "Sound Classification of Animal Voice" publié par "Rushi Balaji Putthewa". https://www.kaggle.com/datasets/rushibalajiputthewad/sound-classification-of-animal-voice
+
+Il contient les dons des différents animaux. Pour des raisons de performance, nous n'avons sélectionné que 5 animaux parmi les 13 disponibles. 
+
+Pour chaque animal, 40 sons servirons de données d'entrainement et 10 de données de test.
+
+
+
+
+
+## workflow d'utilisation du code
+
+
+
+Le dossier de Projet est composé de deux fichiers .py, deux dossiers de données, un dossier de documentation et le fichier readme.
+
+fonctions.py contient toutes les fonctions nécessaires au lancement du code. 
+
+main.py contient le code principal. Il est composé de trois parties :
+
+* partie 0 : contient les librairies et set la seed pour la reproductibilité
+* partie 1 : cette partie permet de récupérer les sons d'animaux et de les transformer en spectrogramme normalisé et scalé
+* partie 2 : cette partie lance l'autoencodeur et le MLP
+
+
+
+ATTENTION : dû à de très faible résultat des réseaux de neurones avec les spectrogrammes, il est préférable de tester le réseaux avec le dataset mninst (voir ci-dessous)
+
+
+
+1. ouvrir le code de main.py
+2. modifier la variable "chemin\_data" et la remplacer par le chemin jusqu'au dossier "2026\_PIML\_B4-main"(ou autre si vous avez changer le nom du dossier projet).
+3. modifier la variable "DATASET" (partie 3) pour tester le réseau vec les spectrogrammes ("mnist") ou les spectrogrammes("spectres")
+
+
+
+indication : vous pouvez visualiser les données avec plt.imshow(images\_train\[n]) ou plt.imshow(images\_test\[n]), avec n l'index de l'image.
 
 
 
@@ -51,9 +91,10 @@ Le traitement se fait en plusieurs étapes
 
 
 
-L'auto encodeur sert à réduire les dimensions des images d'entrainement et de test afin qu'elles soient admise dans le mlp classificateur après. Il se constitue en 3 parties: 
-1) l'encodeur, un réseau neuronale simple avec un nombre de neurones décroissant couche après couche qui va "encoder" l'information et la réduire en dimensions du nombre de neurones de la dernière couche de cette étape.
-2) Le goulot, c'est la dernière couche de l'encodeur, et la couche du milieu de l'auto encodeur dans sa globalité, c'est ici que l'information est le plus réduit, et si lors de la reconstruction, l'image est récrée assez fidèlement, alors cela signifie qu'au goulot, l'information est réduite en dimensions sans trop de perte, après entrainement, lors des test, c'est les coefficients de cette couche que l'on récupèrera et considéra comme la nouvelle image pour le mlp classificateur.
+L'auto encodeur sert à réduire les dimensions des images d'entrainement et de test afin qu'elles soient admise dans le mlp classificateur après. Il se constitue en 3 parties:
+
+1. l'encodeur, un réseau neuronale simple avec un nombre de neurones décroissant couche après couche qui va "encoder" l'information et la réduire en dimensions du nombre de neurones de la dernière couche de cette étape.
+2. Le goulot, c'est la dernière couche de l'encodeur, et la couche du milieu de l'auto encodeur dans sa globalité, c'est ici que l'information est le plus réduit, et si lors de la reconstruction, l'image est récrée assez fidèlement, alors cela signifie qu'au goulot, l'information est réduite en dimensions sans trop de perte, après entrainement, lors des test, c'est les coefficients de cette couche que l'on récupèrera et considéra comme la nouvelle image pour le mlp classificateur.
 
 3\) Le décodeur, est un réseau de neurones avec des tailles de couches croissantes, qui est symétrique à l'encodeur et reforme donc une image à partir des coefs du goulot
 
@@ -213,8 +254,4 @@ l’accuracy, qui mesure le pourcentage global de bonnes prédictions
 le recall, qui mesure la capacité du modèle à retrouver les vrais exemples d’une classe
 
 le F1-score, qui combine précision et recall afin d’obtenir une mesure plus robuste des performances, particulièrement utile si les classes sont déséquilibrées.
-
-
-
-
 

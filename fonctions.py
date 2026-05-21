@@ -8,9 +8,11 @@ import os
 # ── Prétraitement audio ───────────────────────────────────────────────────────
 def mono (donnee):
     """
-    Transforme un signal stéréo en signal mono
-    prends en arguement un array a deux colonnes et renvoie un array en 
-    une colonne
+    Objectif : Convertir un signal audio stéréo en signal mono en calculant la moyenne des deux canaux.
+
+    Entrées : donnee (numpy array 2D avec deux colonnes représentant les canaux stéréo).
+
+    Return : Un numpy array 1D correspondant au signal mono.
     """
     donnee_mono = (donnee[:,0].copy() +donnee[:,1].copy())/2 #on prends la moyenne du signal 
     
@@ -18,13 +20,11 @@ def mono (donnee):
 
 def permutation(x,y,seed):
     """
-    Mélange aléatoirement et de la même manière deux array. 
+   Objectif : Mélanger aléatoirement deux tableaux d'images et de labels tout en conservant la correspondance entre eux.
+
+    Entrées : x (les données/images), y (les labels correspondants), seed (un générateur numpy rng pour la reproductibilité).
     
-    Entrée : 
-        x et y : np_array
-        seeed : float, correspond à la seed aléatoire pour reproductibilité  
-    Return : 
-        x_f et y_x : np_array, les array mélangés
+    Return : x_f, y_f (les deux tableaux mélangés de manière identique).
     """
     n = len(x) #prends le nombre d'image
     n_perm = seed.permutation(n)
@@ -35,14 +35,11 @@ def permutation(x,y,seed):
 
 def stockage (img,labels,dossier_entree,fichier_img,fichier_label):
     """
-    
-    Permet de stocker les images et les labels dans des fichiers .npy
-    
-    Entrée : 
-        img et labels : np_array des donnees
-        path (str) : 
-        path_img (str)
-        path_label(str)
+    Objectif : Sauvegarder les tableaux de données et de labels dans des fichiers .npy sur le disque.
+
+    Entrées : img (array des images), labels (array des labels), dossier_entree (chemin du dossier de destination), fichier_img (nom du fichier image), fichier_label (nom du fichier label).
+
+    Return : Rien (affiche un message de confirmation dans la console).
     """
     path_label = os.path.join(dossier_entree,fichier_label)
     path_image = os.path.join(dossier_entree,fichier_img)
@@ -53,15 +50,11 @@ def stockage (img,labels,dossier_entree,fichier_img,fichier_label):
 
 def spectrogramme(dossier_entree,liste_images,liste_labels,dossier):
     """
-    Génère des spectrogrammes normalisés (129x65) de 1s centrés sur le pic d'intensité des fichiers audio.
+    Objectif : Parcourir un dossier d'audios, générer des spectrogrammes normalisés (convertis en décibels et coupés sur 1 seconde autour du pic d'intensité), les redimensionner à une taille fixe (129x65) et les associer à leur classe animale.
 
-    Entrée:
-        dossier_entree (str): dossier de travail
-        liste_images et liste_label : liste vide
-        dossier (str) : nom du dossier contenant les donnees
+    Entrées : dossier_entree (chemin racine), liste_images et liste_labels (listes vides à remplir), dossier (sous-dossier contenant les classes/audios).
 
-    Returns:
-        tuple: (liste_images, liste_labels) contenant les matrices des spectrogrammes et les noms des animaux correspondants.
+    Return : liste_images, liste_labels (deux numpy arrays contenant respectivement les matrices 2D des spectrogrammes et les chaînes de caractères des noms d'animaux).
     """
     path = os.path.join(dossier_entree,dossier)
     for racine, dossiers, fichiers in os.walk(path):
@@ -71,7 +64,7 @@ def spectrogramme(dossier_entree,liste_images,liste_labels,dossier):
             nom_animal = os.path.basename(racine)
             
             try:
-                # son et générer le spectrogramme
+                # extraire le son et générer le spectrogramme
                 samplerate, data = wavfile.read(chemin_audio)
                 data = data * 1.0 #float 
                 
@@ -129,15 +122,27 @@ def spectrogramme(dossier_entree,liste_images,liste_labels,dossier):
     return liste_images,liste_labels
 # ── Activations ───────────────────────────────────────────────────────────────
 def Relu(z):
+    """
+    Applique la fonction Relu à un np.array
+    """
     return np.maximum(0,z)
 
 def dRelu(z):
+    """
+    Calcule la dérivé de la fonction Relu
+    """
     return (z > 0).astype(float)
 
 def sigmoid(z):
+    """
+    Applique la fonction Sigmoide à un np.array
+    """
     return 1/(1+np.exp(-z))
 
 def dsigmoid(z):
+    """
+    Calcule la dérivé de la fonction Sigmoïde
+    """
     s = sigmoid(z)
     return s * (1 - s)
 
@@ -148,6 +153,9 @@ et sa proba après softmax est donc sa chance d'être de cette classe,
 la prédiction fianle du modèle sera celle de la proba la plus haute
 '''
 def softmax(Z):    
+    """
+    Explique STP 
+    """
     Z = Z - np.max(Z, axis=1, keepdims=True)
     expZ = np.exp(Z)
     return expZ / np.sum(expZ, axis=1, keepdims=True)
@@ -157,21 +165,11 @@ import numpy as np
 
 def init_params(layer_sizes, seed=None):
     """
-    Initialise les poids (uniforme entre -0.5 et 0.5) et les biais (zéros).
-    
-    Parameters
-    ----------
-    layer_sizes : list
-        Liste contenant le nombre de neurones par couche. (ex: [4, 16, 8, 3])
-    seed : int ou None
-        Pour reproductibilité.
-        
-    Returns
-    -------
-    W : dict
-        Dictionnaire des matrices de poids.
-    B : dict
-        Dictionnaire des matrices de biais.
+    Objectif : Initialiser les poids d'un réseau de neurones avec une distribution uniforme entre -0.5 et 0.5, et les biais à zéro.
+
+    Entrées : layer_sizes (liste du nombre de neurones par couche), seed (entier).
+
+    Return : W, B (deux dictionnaires contenant respectivement les matrices de poids et les vecteurs de biais pour chaque couche).
     """
     if seed is not None:
         np.random.seed(seed)
@@ -196,30 +194,11 @@ def init_params(layer_sizes, seed=None):
 
 def init_params2(layer_sizes, init_type="he", seed=None):
     """
-    Initialise les poids et biais du réseau.
-    Parameters
-    ----------
-    layer_sizes : list
-        Liste contenant le nombre de neurones par couche.
-        Exemple :
-        [4, 16, 8, 3]
-        signifie :
-        4 entrées
-        -> couche cachée 16 neurones
-        -> couche cachée 8 neurones
-        -> sortie 3 neurones
-    init_type : str
-        "he"      -> conseillé pour ReLU
-        "xavier"  -> conseillé pour sigmoid/tanh
-        "random"  -> petit aléatoire simple
-    seed : int ou None
-        Pour reproductibilité.
-    Returns
-    -------
-    W : dict
-        Dictionnaire des matrices de poids.
-    B : dict
-        Dictionnaire des biais.
+    Objectif : Initialiser les poids d'un réseau avec des méthodes avancées (He, Xavier, ou Random simple) pour éviter l'explosion du gradient selon l'activation utilisée.
+
+    Entrées : layer_sizes (liste des tailles de couches), init_type (chaîne de caractères), seed (entier).
+
+    Return : W, B (dictionnaires des poids et biais).
     """
     if seed is not None:
         np.random.seed(seed)
@@ -250,6 +229,13 @@ def init_params2(layer_sizes, init_type="he", seed=None):
 
 # ── Forward ───────────────────────────────────────────────────────────────────
 def linear_forward(X, W, B, act,act_finale):
+    """
+    Objectif : Permet de réalsier une forward propagation.
+
+    Entrées : X (données d'entrée), W, B (dictionnaires des paramètres), act (fonction d'activation des couches cachées), act_finale (fonction d'activation de la dernière couche).
+
+    Return : Zs, As (deux dictionnaires stockant respectivement les valeurs pré-activation Z et post-activation A pour chaque couche).
+    """
     Zs={}
     As={0: X}
     L=len(W) #nombre de couche de neurones dans le réseau
@@ -266,9 +252,11 @@ def linear_forward(X, W, B, act,act_finale):
 # ── Loss ──────────────────────────────────────────────────────────────────────
 def cross_entropy(Y, A_L):
     """
-    Loss + gradient dZ directement pour softmax + cross-entropy.
-    dZ_L = A_L - Y  (simplification mathématique exacte)
-    Y doit être one-hot, shape (N, C). #Ca jsp ce que ça veut dire par contre
+    Objectif : Calculer la fonction de coût Cross-Entropy et son gradient.
+
+    Entrées : Y (vrais labels), A_L (prédictions du réseau après softmax).
+
+    Return : J (valeur de la loss), dZ_L (matrice des gradients à la dernière couche).
     """
     eps = 1e-8
     N = Y.shape[0]
@@ -302,6 +290,13 @@ encodeur type: 4096-512-128-32
  Affiche côte à côte n images originales et leurs reconstructions.si les reconstructions sont floues ou fausses, le réseau n'apprend pas.
  '''
 def MSE_reconstruction(X, X_reconstruit, Z_L):  #ADAPTE POUR SIGMOID CAR MEILLEUR FONCTION D'ACTIVATION POUR AUTO-ENCODEUR
+    """
+    Objectif : Calculer l'erreur quadratique moyenne entre l'image d'origine et celle générée par l'auto-encodeur, ainsi que le gradient associé avec une dérivée Sigmoïde.
+
+    Entrées : X (données d'origine), X_reconstruit (sortie de l'auto-encodeur), Z_L (valeurs pré-activation de la dernière couche).
+
+    Return : loss (scalaire), dZ (matrice des gradients).
+    """
     N = X.shape[0]          # nombre d'exemples dans le batch
     nb_pixels = X.shape[1]  # 16384 pour du 128x128
     
@@ -327,6 +322,7 @@ def activation_backward(nom_act, Z):
     elif nom_act == sigmoid:
         return dsigmoid(Z)
     else:
+        
         raise ValueError("Activation non reconnue.")
         
 '''
@@ -407,6 +403,7 @@ def Mini_Batch(X, nb_epoch, Lr, Y, W, B, Nom_tech_Loss, Nom_tech_activation,act_
     return W, B, cout
 # ── Auto-encodeur ─────────────────────────────────────────────────────────────
 def encode(X,W,B, act):
+    
     milieu=len(W)//2
     X_encoded={0:X}
     for i in range(1,milieu+1):

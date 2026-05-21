@@ -1,14 +1,44 @@
 # ── main.py ───────────────────────────────────────────────────────────────────
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 from fonctions import * # ← importe tout depuis fonctions.py
 
-chemin_data = r"C:\Users\titi\OneDrive - INSA Lyon\S2\Projet" # A CHANGER  !!! prends le dossier complet
+chemin_data = r"C:\Users\titi\Documents\Projet\2026_PIML_B4-main" # A CHANGER  !!! prends le dossier complet
 rng = np.random.default_rng(42)
 
+# ============================================================
+#PARTIE 1 - Audio processing et chargement des données des spectrogrammes
+# ============================================================
+path_donnee = [["data_train","images_train.npy","labels_train.npy"],["data_test","images_test.npy","labels_test.npy"]] 
+#variable contenant le nom du dossier des données d'entrainement et de test, ainsi que du noms des fichiers de sortie.
+
+for data in path_donnee:
+    #listes vides
+    X = []
+    Y = []
+    
+    images,labels= spectrogramme(chemin_data,X,Y,data[0])
+    
+    images_f,labels_f = permutation(images,labels,rng)
+    
+    stockage(images_f,labels_f,chemin_data,data[1],data[2])
+    
+print("Spectrogrammes terminés")
+print(f"Forme de la variable images_f (Images) : {images_f.shape}")
+print(f"Forme de la variable labels_f (Labels) : {labels_f.shape}")
+
+# ── chargement fichiers .npy ───────────────────────────
+images_train = np.load("images_train.npy")
+images_test  = np.load("images_test.npy")
+labels_train = np.load("labels_train.npy")
+labels_test  = np.load("labels_test.npy")
+
 # =========================================================
-# CHOIX DU DATASET
+#PARTIE 2 - Autoencodeur et MLP classificateur
+# =========================================================
+
+
+# BLOC 1 - CHOIX DU DATASET
 # =========================================================
 DATASET = "mnist"   # ← "mnist" ou "spectres"
 
@@ -32,31 +62,6 @@ if DATASET == "mnist":
     N_train, N_test = 10000, 2000
 
 elif DATASET == "spectres":
-    path_donnee = [["data","images_train.npy","labels_train.npy"],["data","images_test.npy","labels_test.npy"]] 
-    #variable contenant le nom du dossier des données d'entrainement et de test, ainsi que du noms des fichiers de sortie.
-
-    for data in path_donnee:
-        #listes vides
-        X = []
-        Y = []
-        
-        images,labels= spectrogramme(chemin_data,X,Y,data[0])
-        
-        images_f,labels_f = permutation(images,labels,rng)
-        
-        stockage(images_f,labels_f,chemin_data,data[1],data[2])
-        
-    print("Spectrogrammes terminés")
-    print(f"Forme de la variable images_f (Images) : {images_f.shape}")
-    print(f"Forme de la variable labels_f (Labels) : {labels_f.shape}")
-
-    
-
-    # ── chargement fichiers .npy ───────────────────────────
-    images_train = np.load("images_train.npy")
-    images_test  = np.load("images_test.npy")
-    labels_train = np.load("labels_train.npy")
-    labels_test  = np.load("labels_test.npy")
 
     N_train   = images_train.shape[0]
     N_test    = images_test.shape[0]
@@ -127,3 +132,4 @@ evaluation(pred, labels_test_int[:len(pred)], n_classes, label_to_int)
 plt.plot(cout_clf)
 plt.title("Training loss MLP")
 plt.show()
+
