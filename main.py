@@ -21,7 +21,7 @@ for data in path_donnee:
     
     images_f,labels_f = permutation(images,labels,rng)
     
-    stockage(images_f,labels_f,chemin_data,data[1],data[2])
+    stockage(images_f,labels_f,chemin_data,data[1],data[2]) #les fichiers sont sauvegardés dans le dossier de travail
     
 print("Spectrogrammes terminés")
 print(f"Forme de la variable images_f (Images) : {images_f.shape}")
