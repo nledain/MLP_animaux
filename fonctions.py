@@ -153,7 +153,48 @@ def softmax(Z):
     return expZ / np.sum(expZ, axis=1, keepdims=True)
 
 # ── Initialisation ────────────────────────────────────────────────────────────
-def init_params(layer_sizes, init_type="he", seed=None):
+import numpy as np
+
+def init_params(layer_sizes, seed=None):
+    """
+    Initialise les poids (uniforme entre -0.5 et 0.5) et les biais (zéros).
+    
+    Parameters
+    ----------
+    layer_sizes : list
+        Liste contenant le nombre de neurones par couche. (ex: [4, 16, 8, 3])
+    seed : int ou None
+        Pour reproductibilité.
+        
+    Returns
+    -------
+    W : dict
+        Dictionnaire des matrices de poids.
+    B : dict
+        Dictionnaire des matrices de biais.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+        
+    W = {}
+    B = {}
+    L = len(layer_sizes) - 1
+    
+    for l in range(1, L + 1):
+        n_prev = layer_sizes[l - 1]
+        n_curr = layer_sizes[l]
+        
+        # Logique de la 2ème fonction : tirage uniforme dans [0, 1[ puis on soustrait 0.5
+        # Format (n_prev, n_curr) et dictionnaires pour respecter les sorties de la 1ère fonction
+        W[l] = np.random.rand(n_prev, n_curr) - 0.5
+        
+        # Biais à zéro, format (1, n_curr) comme dans la 1ère fonction
+        B[l] = np.zeros((1, n_curr))
+        
+    return W, B
+
+
+def init_params2(layer_sizes, init_type="he", seed=None):
     """
     Initialise les poids et biais du réseau.
     Parameters
@@ -308,7 +349,7 @@ def backward(Y, W, Zs, As, dZ_L, nom_act,clip=None):#Fonction complexe, remonte 
     dZ_current = dZ_L
     for l in reversed(range(1, L + 1)):
         if clip is not None:
-            dZ_current = np.clip(dZ_current, -clip, clip)
+            dZ_current = np.clip(dZ_current, -clip, clip)# on clip car le gradient peut exploser et faire exploser la loss
         A_prev = As[l - 1]
         gradients_W[l] = np.dot(A_prev.T, dZ_current)
         gradients_B[l] = np.sum(dZ_current, axis=0, keepdims=True)

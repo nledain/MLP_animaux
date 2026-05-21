@@ -4,34 +4,13 @@ import matplotlib.pyplot as plt
 import os
 from fonctions import * # ← importe tout depuis fonctions.py
 
-# =========================================================
-#Partie 1 - Préprocessing des donees
-# =========================================================
 chemin_data = r"C:\Users\titi\OneDrive - INSA Lyon\S2\Projet" # A CHANGER  !!! prends le dossier complet
-rng = np.random.default_rng(12345)
-
-path_donnee = [["data","images_train.npy","labels_train.npy"],["data","images_test.npy","labels_test.npy"]] 
-#variable contenant le nom du dossier des données d'entrainement et de test, ainsi que du noms des fichiers de sortie.
-
-for data in path_donnee:
-    #listes vides
-    X = []
-    Y = []
-    
-    images,labels= spectrogramme(chemin_data,X,Y,data[0])
-    
-    images_f,labels_f = permutation(images,labels,rng)
-    
-    stockage(images_f,labels_f,chemin_data,data[1],data[2])
-    
-    print("Spectrogrammes terminés")
-    print(f"Forme de la variable images_f (Images) : {images_f.shape}")
-    print(f"Forme de la variable labels_f (Labels) : {labels_f.shape}")
+rng = np.random.default_rng(42)
 
 # =========================================================
 # CHOIX DU DATASET
 # =========================================================
-DATASET = "spectres"   # ← "mnist" ou "spectres"
+DATASET = "mnist"   # ← "mnist" ou "spectres"
 
 # =========================================================
 # BLOC 2 — CHARGEMENT DES DONNÉES
@@ -53,12 +32,25 @@ if DATASET == "mnist":
     N_train, N_test = 10000, 2000
 
 elif DATASET == "spectres":
-    # ── génération spectrogrammes si besoin ───────────────
-    GENERER_SPECTROGRAMMES = False
-    if GENERER_SPECTROGRAMMES:
-        dossier_entree = r"C:\Users\titi\OneDrive\..."
-        # ... boucle de génération ...
-        stockage(X_f, Y_f)
+    path_donnee = [["data","images_train.npy","labels_train.npy"],["data","images_test.npy","labels_test.npy"]] 
+    #variable contenant le nom du dossier des données d'entrainement et de test, ainsi que du noms des fichiers de sortie.
+
+    for data in path_donnee:
+        #listes vides
+        X = []
+        Y = []
+        
+        images,labels= spectrogramme(chemin_data,X,Y,data[0])
+        
+        images_f,labels_f = permutation(images,labels,rng)
+        
+        stockage(images_f,labels_f,chemin_data,data[1],data[2])
+        
+    print("Spectrogrammes terminés")
+    print(f"Forme de la variable images_f (Images) : {images_f.shape}")
+    print(f"Forme de la variable labels_f (Labels) : {labels_f.shape}")
+
+    
 
     # ── chargement fichiers .npy ───────────────────────────
     images_train = np.load("images_train.npy")
@@ -85,9 +77,9 @@ elif DATASET == "spectres":
 # =========================================================
 # BLOC 3 — AUTO-ENCODEUR
 # =========================================================
-W_ae, B_ae = init_params(
+W_ae, B_ae = init_params2(
     layer_sizes=[nb_pixels, 512, 64, 512, nb_pixels],  # ← nb_pixels automatique
-    init_type="he", seed=42
+        init_type="he", seed= 42
 )
 
 W_ae, B_ae, cout_ae = Mini_Batch(
@@ -112,9 +104,9 @@ X_test_encoded  = encode(X_test,  W_ae, B_ae, Relu)
 # =========================================================
 # BLOC 5 — MLP CLASSIFIEUR
 # =========================================================
-W_clf, B_clf = init_params(
+W_clf, B_clf = init_params2(
     layer_sizes=[64, 128, 64, n_classes],  # ← n_classes automatique
-    init_type="he", seed=42
+     init_type="he",seed= 42
 )
 
 W_clf, B_clf, cout_clf = Mini_Batch(
