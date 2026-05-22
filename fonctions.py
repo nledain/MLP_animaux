@@ -146,23 +146,22 @@ def dsigmoid(z):
     s = sigmoid(z)
     return s * (1 - s)
 
-'''
-Prends la valeur prédite par le modèle A et la transforme en proba 
-chaque neuronne de la couche finale represente une classe d'animaux,
-et sa proba après softmax est donc sa chance d'être de cette classe,
-la prédiction fianle du modèle sera celle de la proba la plus haute
-'''
+
 def softmax(Z):    
     """
-    Explique STP 
+    Objectif : Convertir les scores bruts de la dernière couche en probabilités (somme = 1),
+    ce qui permet d'interpréter la sortie du réseau comme une distribution de probabilité
+    sur les classes. Z-np.max(Z) =astuce numérique pour éviter l'overflow (stabilité de l'exponentielle).
+
+    Entrées : Z (numpy array 2D de shape (N, n_classes), valeurs pré-activation de la dernière couche).
+
+    Return : Un numpy array de même shape où chaque ligne somme à 1 (probabilités par classe).
     """
     Z = Z - np.max(Z, axis=1, keepdims=True)
     expZ = np.exp(Z)
     return expZ / np.sum(expZ, axis=1, keepdims=True)
 
 # ── Initialisation ────────────────────────────────────────────────────────────
-import numpy as np
-
 def init_params(layer_sizes, seed=None):
     """
     Objectif : Initialiser les poids d'un réseau de neurones avec une distribution uniforme entre -0.5 et 0.5, et les biais à zéro.
@@ -192,11 +191,11 @@ def init_params(layer_sizes, seed=None):
     return W, B
 
 
-def init_params2(layer_sizes, init_type="he", seed=None):
+def init_params2(layer_sizes, seed=None):
     """
-    Objectif : Initialiser les poids d'un réseau avec des méthodes avancées (He, Xavier, ou Random simple) pour éviter l'explosion du gradient selon l'activation utilisée.
+    Objectif : Initialiser les poids d'un réseau avec une méthode avancé, spécifique à Relu
 
-    Entrées : layer_sizes (liste des tailles de couches), init_type (chaîne de caractères), seed (entier).
+    Entrées : layer_sizes (liste des tailles de couches), seed (entier).
 
     Return : W, B (dictionnaires des poids et biais).
     """
@@ -211,16 +210,7 @@ def init_params2(layer_sizes, init_type="he", seed=None):
         # ==========================================
         # INITIALISATION DES POIDS
         # ==========================================
-        if init_type == "he":
-            # très bon pour ReLU
-            W[l] = np.random.randn(n_prev, n_curr) * np.sqrt(2 / n_prev)
-        elif init_type == "xavier":
-            # mieux pour sigmoid/tanh
-            W[l] = np.random.randn(n_prev, n_curr) * np.sqrt(1 / n_prev)
-        elif init_type == "random":
-            W[l] = np.random.randn(n_prev, n_curr) * 0.01
-        else:
-            raise ValueError("Type d'initialisation inconnu")
+        W[l] = np.random.randn(n_prev, n_curr) * np.sqrt(2 / n_prev)
         # ==========================================
         # BIAIS
         # ==========================================
@@ -265,7 +255,7 @@ def cross_entropy(Y, A_L):
     return J, dZ_L 
 
 '''
-encodeur type: 4096-512-128-32
+encodeur type: 512-128-64-128-512
  L'auto-encodeur se code avec les différentes fonctions:
  
  -init_parameter: rien à changer par rapport au mlp, permet d'initialiser W et B
@@ -289,6 +279,7 @@ encodeur type: 4096-512-128-32
  -vue_reconstruite: fonction pas absolument nécéssaire mais j'ai galérer à debuger sans elle donc elle sert de fou, 
  Affiche côte à côte n images originales et leurs reconstructions.si les reconstructions sont floues ou fausses, le réseau n'apprend pas.
  '''
+ 
 def MSE_reconstruction(X, X_reconstruit, Z_L):  #ADAPTE POUR SIGMOID CAR MEILLEUR FONCTION D'ACTIVATION POUR AUTO-ENCODEUR
     """
     Objectif : Calculer l'erreur quadratique moyenne entre l'image d'origine et celle générée par l'auto-encodeur, ainsi que le gradient associé avec une dérivée Sigmoïde.
@@ -306,6 +297,17 @@ def MSE_reconstruction(X, X_reconstruit, Z_L):  #ADAPTE POUR SIGMOID CAR MEILLEU
     return loss, dZ
 
 def Loss_choisi(nom_technique, Y_r, Y_p, Z_final=None):
+    """
+    Objectif : Dispatcher vers la bonne fonction de loss selon la tâche
+    (classification avec cross_entropy, ou reconstruction avec MSE_reconstruction).
+
+    Entrées : nom_technique (référence à la fonction de loss), Y_r (valeurs réelles),
+    Y_p (valeurs prédites / sortie du réseau), Z_final (valeurs pré-activation de la
+    dernière couche, requis uniquement pour MSE_reconstruction).
+
+    Return : J (valeur scalaire de la loss), dZ_L (gradient à la dernière couche
+    pour lancer la backpropagation).
+    """
     if nom_technique==cross_entropy:
         J, dZ_L=nom_technique(Y_r,Y_p)
     elif nom_technique==MSE_reconstruction:
@@ -317,6 +319,15 @@ def Loss_choisi(nom_technique, Y_r, Y_p, Z_final=None):
 
 # ── Backward ──────────────────────────────────────────────────────────────────
 def activation_backward(nom_act, Z):
+    """
+    Objectif : Dispatcher vers la bonne dérivée d'activation lors de la backpropagation,
+    en fonction de la fonction d'activation utilisée en forward.
+
+    Entrées : nom_act (référence à la fonction d'activation, ex: Relu ou sigmoid),
+    Z (numpy array des valeurs pré-activation de la couche concernée).
+
+    Return : numpy array de même shape que Z — la dérivée de l'activation appliquée en Z.
+    """
     if nom_act == Relu:
         return dRelu(Z)
     elif nom_act == sigmoid:
@@ -329,7 +340,7 @@ def activation_backward(nom_act, Z):
 Y: Les réultats
 W: Dico des poids par couche
 Zs: Dico des val prédit dans chaque neurone (avant application de non-linearité) par couche
-As: Dico des val prédites après softmax par couche
+As: Dico des val prédites après softmax par couche(pour mlp sinon c'est après sigmoid pour l'auto-encodeur)
 dZ_L: Liste de la variation des val prédites à la dernière couche, calculé dans cross_entropy
 gradients_W: Dico des dw par couche
 gradients_B: Dico des db par couche
@@ -339,6 +350,33 @@ Fonctionnement: on parcourt le réseau à l'envers puisqu'on remonte les erreurs
 '''
 
 def backward(Y, W, Zs, As, dZ_L, nom_act,clip=None):#Fonction complexe, remonte chaque couche depuis la fin, pour trouver les dZ, les dA, les dw et db
+    """
+    Objectif : Effectuer la rétropropagation du gradient à travers toutes les couches
+    du réseau, en remontant de la dernière couche vers la première pour calculer
+    les gradients dW et dB de chaque couche.
+
+    Fonctionnement couche par couche (de L à 1) :
+      - On reçoit dZ_L (gradient sur la sortie, calculé par la loss).
+      - Pour chaque couche l :
+          dW[l] = A[l-1].T · dZ[l]        (gradient des poids)
+          dB[l] = somme(dZ[l])             (gradient des biais)
+          dA[l-1] = dZ[l] · W[l].T        (on propage l'erreur vers la couche précédente)
+          dZ[l-1] = dA[l-1] * f'(Z[l-1])  (on applique la dérivée de l'activation)
+      - Le clip optionnel borne dZ dans [-clip, +clip] à chaque couche pour éviter
+        l'explosion du gradient sur des réseaux profonds ou des données bruitées.
+
+    Entrées :
+      Y        — labels réels (non utilisés directement ici, le gradient vient de dZ_L)
+      W        — dictionnaire des poids par couche
+      Zs       — dictionnaire des valeurs pré-activation Z par couche (issu de linear_forward)
+      As       — dictionnaire des valeurs post-activation A par couche (As[0] = X)
+      dZ_L     — gradient à la dernière couche, calculé par la fonction de loss
+      nom_act  — référence à la fonction d'activation des couches cachées (ex: Relu)
+      clip     — valeur de clipping du gradient (float ou None)
+
+    Return : gradients_W, gradients_B (deux dictionnaires indexés par numéro de couche).
+    """
+    
     gradients_W = {}
     gradients_B = {}
     L = len(W)
@@ -357,6 +395,15 @@ def backward(Y, W, Zs, As, dZ_L, nom_act,clip=None):#Fonction complexe, remonte 
 
 # ── Update ────────────────────────────────────────────────────────────────────
 def update(dw,db,w,b, Lr):
+    """
+    Objectif : Mettre à jour les poids et biais du réseau en appliquant la règle
+    de descente de gradient : nouveau_poids = ancien_poids - taux_apprentissage * gradient.
+
+    Entrées : dw, db (dictionnaires des gradients calculés par backward()),
+    w, b (dictionnaires des poids et biais actuels), Lr (taux d'apprentissage, float).
+
+    Return : W_new, B_new (nouveaux dictionnaires de poids et biais mis à jour).
+    """
     L=len(w)
     W_new={}
     B_new={}
@@ -367,6 +414,23 @@ def update(dw,db,w,b, Lr):
 
 # ── Entraînement ──────────────────────────────────────────────────────────────
 def Batch_complet(X,nb_epoch, Lr, Y,W,B, Nom_tech_Loss,Nom_tech_activation,act_finale):
+    """
+    Objectif : Entraîner le réseau en mode batch complet (full-batch gradient descent) :
+    à chaque epoch, on calcule le gradient sur l'intégralité du dataset avant de
+    mettre à jour les poids une seule fois.
+
+    Entrées :
+      X                — données d'entrée complètes (shape N × nb_pixels)
+      nb_epoch         — nombre total d'epochs d'entraînement
+      Lr               — taux d'apprentissage (learning rate)
+      Y                — labels / cibles (shape N × n_classes pour classification, N × nb_pixels pour AE)
+      W, B             — dictionnaires des poids et biais initiaux
+      Nom_tech_Loss    — référence à la fonction de loss (cross_entropy ou MSE_reconstruction)
+      Nom_tech_activation — référence à la fonction d'activation des couches cachées
+      act_finale       — référence à la fonction d'activation de la couche de sortie
+
+    Return : W, B (poids entraînés), cout (liste des valeurs de loss par epoch).
+    """
     cout=[]
     L=len(W)
     for i in range(nb_epoch):
@@ -380,6 +444,35 @@ def Batch_complet(X,nb_epoch, Lr, Y,W,B, Nom_tech_Loss,Nom_tech_activation,act_f
     return W,B, cout
 
 def Mini_Batch(X, nb_epoch, Lr, Y, W, B, Nom_tech_Loss, Nom_tech_activation,act_finale, batch_size=64, clip=None):
+    """
+    Objectif : Entraîner le réseau avec la descente de gradient stochastique par mini-batchs :
+    à chaque epoch, le dataset est mélangé puis découpé en petits blocs de taille batch_size,
+    et les poids sont mis à jour après chaque bloc.
+
+    Pipeline à chaque epoch :
+      1. Mélange aléatoire du dataset complet (np.random.permutation).
+      2. Pour chaque mini-batch de taille batch_size :
+           a. Forward   : linear_forward(X_batch, ...)  → Zs, As
+           b. Loss      : Loss_choisi(...)               → J, dZ_L
+           c. Backward  : backward(...)                  → gradients (avec clip optionnel)
+           d. Update    : update(...)                    → W, B mis à jour
+      3. La loss de l'epoch est la moyenne des loss de tous les mini-batchs.
+      4. Affichage toutes les 5 epochs.
+
+    Entrées :
+      X                   — données d'entrée (shape N × nb_pixels)
+      nb_epoch            — nombre total d'epochs
+      Lr                  — taux d'apprentissage
+      Y                   — labels / cibles
+      W, B                — dictionnaires des poids et biais initiaux
+      Nom_tech_Loss       — référence à la fonction de loss
+      Nom_tech_activation — référence à la fonction d'activation des couches cachées
+      act_finale          — référence à la fonction d'activation de la couche de sortie
+      batch_size          — nombre d'exemples par mini-batch (défaut : 64)
+      clip                — valeur de clipping du gradient (float ou None, défaut : None)
+
+    Return : W, B (poids entraînés), cout (liste des loss moyennes par epoch).
+    """
     cout = []
     L = len(W)
     N = X.shape[0]
@@ -401,9 +494,19 @@ def Mini_Batch(X, nb_epoch, Lr, Y, W, B, Nom_tech_Loss, Nom_tech_activation,act_
         if i % 5 == 0:
             print(f"Epoch {i}/{nb_epoch} — Loss: {mean_loss:.4f}")
     return W, B, cout
+
 # ── Auto-encodeur ─────────────────────────────────────────────────────────────
 def encode(X,W,B, act):
-    
+    """
+    Objectif : Faire passer les données dans la partie encodeur de l'auto-encodeur,
+    c'est-à-dire uniquement jusqu'à la couche centrale (goulot d'étranglement),
+    pour obtenir la représentation compressée/latente des données.
+
+    Entrées : X (données d'entrée, shape (N, nb_pixels)), W et B (dictionnaires des poids
+    et biais de l'auto-encodeur complet), act (fonction d'activation des couches cachées).
+
+    Return : Un numpy array de shape (N, taille_goulot) — la représentation latente compressée.
+    """
     milieu=len(W)//2
     X_encoded={0:X}
     for i in range(1,milieu+1):
@@ -413,6 +516,17 @@ def encode(X,W,B, act):
     return X_encoded[milieu]
 
 def decode(X_encoded,W,B,act,act_finale):
+    """
+    Objectif : Faire passer la représentation latente dans la partie décodeur
+    de l'auto-encodeur (de la couche centrale jusqu'à la sortie) pour reconstruire
+    l'image d'origine.
+
+    Entrées : X_encoded (représentation latente, shape (N, taille_goulot)), W et B
+    (dictionnaires des poids et biais), act (activation des couches cachées),
+    act_finale (activation de la couche de sortie, typiquement sigmoid).
+
+    Return : Un numpy array de shape (N, nb_pixels) — les images reconstruites.
+    """
     milieu=len(W)//2
     X_decoded={milieu:X_encoded}
     for i in range(milieu+1,len(W)+1):
@@ -426,9 +540,26 @@ def decode(X_encoded,W,B,act,act_finale):
 
 def vue_reconstruite(X, W, B, act, act_finale,D, E, n=5):
     """
-    Affiche n images originales et leurs reconstructions côte à côte.
-    X : batch d'images shape (N, 16384)
-    n : nombre d'images à afficher
+    Objectif : Vérifier visuellement la qualité de reconstruction de l'auto-encodeur
+    en affichant côte à côte n images originales (ligne du haut) et leurs versions
+    reconstruites par le réseau (ligne du bas).
+
+    Fonctionnement pour chaque image i :
+      1. encode(x_single, W, B, act)          - représentation latente compressée
+      2. decode(x_encoded, W, B, act, act_finale) - image reconstruite aplatie
+      3. reshape en (D, E) pour l'affichage
+      4. Affichage avec imshow (colormap "gray")
+
+    Entrées :
+      X         — données de test aplaties (shape N × nb_pixels)
+      W, B      — dictionnaires des poids et biais de l'auto-encodeur entraîné
+      act       — fonction d'activation des couches cachées (ex: Relu)
+      act_finale — fonction d'activation de la couche de sortie (ex: sigmoid)
+      D         — hauteur de l'image en pixels (nombre de lignes au reshape)
+      E         — largeur de l'image en pixels (nombre de colonnes au reshape)
+      n         — nombre d'images à afficher (défaut : 5)
+
+    Return : Rien — affiche directement une figure matplotlib 2×n.
     """
     fig, axes = plt.subplots(2, n, figsize=(n * 3, 6))
     for i in range(n):
@@ -454,6 +585,30 @@ def vue_reconstruite(X, W, B, act, act_finale,D, E, n=5):
 
 # ── Évaluation ────────────────────────────────────────────────────────────────
 def evaluation(pred, y_test_subset, n_classes, label_to_int=None):
+    """
+    Objectif : Calculer et afficher les métriques de performance du classifieur :
+    accuracy globale, puis précision, recall et F1-score pour chaque classe,
+    avec une ligne de moyenne finale.
+
+    Les trois métriques par classe :
+      - Précision  = TP / (TP + FP) : parmi tout ce que le modèle a prédit comme
+                     classe C, quelle fraction l'était vraiment ? Mesure les FP
+      - Recall     = TP / (TP + FN) : parmi tous les vrais exemples de classe C,
+                     quelle fraction a été correctement détectée ? Mesure les oublis: FN
+      - F1-score   = 2 × (Précision × Recall) / (Précision + Recall) : moyenne harmonique
+                     des deux, utile quand les classes sont déséquilibrées.
+    Les cas dégénérés (TP+FP=0 ou TP+FN=0) sont gérés en retournant 0 pour éviter
+    les divisions par zéro.
+
+    Entrées :
+      pred           — array 1D des classes prédites (entiers, issu de np.argmax)
+      y_test_subset  — array 1D des vraies classes (entiers)
+      n_classes      — nombre total de classes
+      label_to_int   — dictionnaire {nom_animal: indice} pour afficher les noms lisibles
+                       à la place des indices (optionnel, défaut : affiche les indices)
+
+    Return : Rien — affiche un tableau formaté dans la console.
+    """
     accuracy = np.mean(pred == y_test_subset)
     print(f"Accuracy : {accuracy * 100:.2f}%")
     recall_par_classe    = np.zeros(n_classes)

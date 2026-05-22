@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from fonctions import * # ← importe tout depuis fonctions.py
 
-chemin_data = r"C:\Users\titi\Documents\Projet\2026_PIML_B4-main" # A CHANGER  !!! prends le dossier complet
+chemin_data = r"D:\INSA\3-A BS\UE7- Image_ML\ML\2026_PIML_B4" # A CHANGER  !!! prends le dossier complet
 rng = np.random.default_rng(42)
 
 # ============================================================
@@ -84,7 +84,7 @@ elif DATASET == "spectres":
 # =========================================================
 W_ae, B_ae = init_params2(
     layer_sizes=[nb_pixels, 512, 64, 512, nb_pixels],  # ← nb_pixels automatique
-        init_type="he", seed= 42
+    seed= 42
 )
 
 W_ae, B_ae, cout_ae = Mini_Batch(
@@ -111,7 +111,7 @@ X_test_encoded  = encode(X_test,  W_ae, B_ae, Relu)
 # =========================================================
 W_clf, B_clf = init_params2(
     layer_sizes=[64, 128, 64, n_classes],  # ← n_classes automatique
-     init_type="he",seed= 42
+    seed= 42
 )
 
 W_clf, B_clf, cout_clf = Mini_Batch(
